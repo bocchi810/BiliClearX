@@ -1,3 +1,18 @@
+> [!Note]
+> 此仓库为个人对 [BiliClear](https://github.com/qaqFei/BiliClear) 的后续维护
+> 等待原仓库整理代码完成后，本仓库会对原仓库的**部分** issues 进行实现
+
+
+# TODO
+- [ ] `BiliClear` 的 WebUI 重构 [#71](https://github.com/qaqFei/BiliClear/issues/71)
+- [ ] `BiliClear` 的审核系统实现(此项会同时解决误判问题) [#62](https://github.com/qaqFei/BiliClear/issues/62) [#50](https://github.com/qaqFei/BiliClear/issues/50) [#66](https://github.com/qaqFei/BiliClear/issues/66) [#64](https://github.com/qaqFei/BiliClear/issues/64)
+- [ ] `BiliClear` 指定举报人实现 [#38](https://github.com/qaqFei/BiliClear/issues/38)
+- [ ] `BiliClear` 举报策略调整 [#??](#)
+- [ ] 支持较低版本的 Python ![Python Version](https://img.shields.io/badge/Python%20Version-%3E%3D3.10-blue)
+
+<details>
+<summary>原README</summary>
+  
 ![BiliClear](https://socialify.git.ci/qaqFei/BiliClear/image?description=1&descriptionEditable=Report%20violating%20Bilibili%20users%20in%20batches.&font=Jost&forks=1&issues=1&language=1&name=1&owner=1&pattern=Charlie%20Brown&pulls=1&stargazers=1&theme=Auto)
 
 # BiliClear
@@ -66,6 +81,7 @@
 使用 `BiliClear` 造成的任何后果由用户自行承担, 开发者不对此负责, 请谨慎使用该工具
 
 ---
+</details>
 
 ## License
-BiliClear 使用 [MIT License](LICENSE)
+BiliClearX使用 [MIT License](LICENSE)
