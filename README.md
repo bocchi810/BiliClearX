@@ -1,6 +1,9 @@
 > [!Note]
 > 此仓库为个人对 [BiliClear](https://github.com/qaqFei/BiliClear) 的后续维护
-> 等待原仓库整理代码完成后，本仓库会对原仓库的**部分** issues 进行实现
+> 
+> 本仓库会对原仓库的**部分** issues 进行实现
+>
+> 下次更新时间 **国庆**
 
 
 # TODO
