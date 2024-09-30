@@ -5,7 +5,11 @@ import datetime
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from io import StringIO
 from utils.config import ROOT, Config
+from colorama import init, Fore, Style
 
+
+# 初始化 colorama
+init(autoreset=True)
 
 console_log_level = Config.get('console_log_level')
 file_log_level = Config.get('file_log_level')
@@ -22,27 +26,47 @@ console_log_level_int = log_level_map.get(console_log_level.upper(), DEBUG)
 file_log_level_int = log_level_map.get(file_log_level.upper(), INFO)
 
 
+class CustomFormatter(logging.Formatter):
+    def format(self, record):
+        color = self._get_color(record.levelname)
+        record.color = color
+        return super().format(record)
+
+    def _get_color(self, level_name):
+        """根据日志级别返回相应的颜色"""
+        colors = {
+            'DEBUG': Fore.CYAN,
+            'INFO': Fore.GREEN,
+            'WARNING': Fore.YELLOW,
+            'ERROR': Fore.RED,
+            'CRITICAL': Fore.RED + Style.BRIGHT
+        }
+        return colors.get(level_name, Fore.WHITE)
+
+
 class LOG:
     def __init__(self, log_file_prefix=ROOT / "logs"):
         os.makedirs(log_file_prefix, exist_ok=True)
         self.log_file_prefix = log_file_prefix
         self.logger = logging.getLogger("Custom Logger")
-        self.logger.setLevel(logging.NOTSET)
+        self.logger.setLevel(logging.DEBUG)
 
-        # 创建控制台输出的handler
         console_handler = logging.StreamHandler()
         console_handler.setLevel(console_log_level_int)
-        formatter = logging.Formatter(
-            '%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-        console_handler.setFormatter(formatter)
+
+        colored_formatter = CustomFormatter(
+            f'{Fore.BLUE}{Style.BRIGHT}%(asctime)s{Style.RESET_ALL} '
+            f'%(color)s[%(levelname)s]{Style.RESET_ALL} '
+            f'{Fore.WHITE}%(message)s{Style.RESET_ALL}',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        console_handler.setFormatter(colored_formatter)
         self.logger.addHandler(console_handler)
 
-        # 初始化文件handler为None，以便在首次记录日志时创建
         self.file_handler = None
         self.current_log_date = None
         self.lock = threading.Lock()
 
-        # 创建一个 StringIO 对象来捕获日志输出
         self.log_stream = StringIO()
 
     def _ensure_log_file_created(self):
@@ -61,7 +85,7 @@ class LOG:
                     self.log_file, encoding='utf-8')
                 self.file_handler.setLevel(file_log_level_int)
                 self.file_handler.setFormatter(logging.Formatter(
-                    '%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+                    '%(asctime)s [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
                 self.logger.addHandler(self.file_handler)
 
     def debug(self, message: str) -> None:

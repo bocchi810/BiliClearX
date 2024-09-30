@@ -3,7 +3,7 @@ from typing import Any
 import ujson as json
 import os
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 
 os.makedirs(ROOT / "configs", exist_ok=True)
 
@@ -12,8 +12,15 @@ class CFG:
         self.default = {
             "console_log_level": "debug",
             "file_log_level": "info",
+            "enable_webui": True,
             "host": "127.0.0.1",
             "port": 8080,
+            "bili_report_api": True,
+            "reply_limit": 100,
+            "enable_check_user": False,
+            "headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+            }
         }
         self.content = self.read()
 

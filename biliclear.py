@@ -1,163 +1,93 @@
-import json
-import sys
+import ujson as json
 import re
 import time
-from datetime import datetime
-from os import chdir, environ
-from os.path import exists, dirname, abspath
-from threading import Thread
-
-import cv2
-import numpy as np
 import requests
-
 import biliauth
-import gpt
-import syscmds
-import checker
+from requests.packages import urllib3  # type: ignore
+from utils import checker
 from compatible_getpass import getpass
+from os import environ
+from utils.config import Config
+from utils.logger import Logger
 
-sys.excepthook = lambda *args: [print("^C"), exec("raise SystemExit")] if KeyboardInterrupt in args[0].mro() else sys.__excepthook__(*args)
 
-selfdir = dirname(sys.argv[0])
-if selfdir == "": selfdir = abspath(".")
-chdir(selfdir)
-
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+urllib3.disable_warnings(
+    urllib3.exceptions.InsecureRequestWarning)
 loaded = False
+headers = {}
+
 
 def checkRuleUpdate():
-    try:
-        new_rules = requests.get(open("./RULE_SOURCE", "r", encoding="utf-8").read(), verify=False).content.decode("utf-8")
-        with open("./res/rules.yaml", "w", encoding="utf-8") as f:
-            f.write(new_rules)
-    except Exception as e:
-        with open("update_rule_err.txt", "w", encoding="utf-8") as f:
-            f.write(f"{datetime.now()}\n{e}")
+    pass
+#    try:
+#        new_rules = requests.get(open(
+#            "./RULE_SOURCE", "r", encoding="utf-8").read(), verify=False).content.decode("utf-8")
+#        with open("./res/rules.yaml", "w", encoding="utf-8") as f:
+#            f.write(new_rules)
+#    except Exception as e:
+#        with open("update_rule_err.txt", "w", encoding="utf-8") as f:
+#            f.write(f"{datetime.now()}\n{e}")
 
-Thread(target=checkRuleUpdate, daemon=True).start()
 
-def saveConfig():
-    with open("./config.json", "w", encoding="utf-8") as f:
-        f.write(json.dumps({
-            "headers": headers,
-            "bili_report_api": bili_report_api,
-            "reply_limit": reply_limit,
-            "enable_gpt": enable_gpt,
-            "gpt_apibase": gpt.openai.api_base,
-            "gpt_proxy": gpt.openai.proxy,
-            "gpt_apikey": gpt.openai.api_key,
-            "gpt_model": gpt.gpt_model,
-            "enable_check_lv2avatarat": enable_check_lv2avatarat,
-            "enable_check_replyimage": enable_check_replyimage,
-            "enable_check_user": enable_check_user
-        }, indent=4, ensure_ascii=False))
+# Thread(target=checkRuleUpdate, daemon=True).start()
 
-def putConfigVariables(config: dict):
-    global headers
-    global bili_report_api, csrf
-    global reply_limit, enable_gpt
-    global enable_check_lv2avatarat
-    global enable_check_replyimage
+
+def putConfigVariables():
+    global bili_report_api, csrf, headers
+    global reply_limit
     global enable_check_user
-    
-    headers = config["headers"]
-    bili_report_api = config.get("bili_report_api", True)
-    csrf = getCsrf(headers["Cookie"])
-    reply_limit = config.get("reply_limit", 100)
-    enable_gpt = config.get("enable_gpt", False)
-    gpt.openai.api_base = config.get("gpt_apibase", gpt.openai.api_base)
-    gpt.openai.proxy = config.get("gpt_proxy", gpt.openai.proxy)
-    gpt.openai.api_key = config.get("gpt_apikey", "")
-    gpt.gpt_model = config.get("gpt_model", "gpt-4o-mini")
-    enable_check_lv2avatarat = config.get("enable_check_lv2avatarat", False)
-    enable_check_replyimage = config.get("enable_check_replyimage", False)
-    enable_check_user = config.get("enable_check_user", False)
+
+    headers = Config.get("headers")
+    bili_report_api = Config.get("bili_report_api", True)
+    csrf = getCsrf(headers.get("Cookie"))
+    reply_limit = Config.get("reply_limit", 100)
+    enable_check_user = Config.get("enable_check_user", False)
     if reply_limit <= 20:
         reply_limit = 100
-    
-def getCsrf(cookie: str):
+
+
+def getCsrf(cookie: str | None):
+    if cookie is None:
+        return ""
     try:
         return re.findall(r"bili_jct=(.*?);", cookie)[0]
     except IndexError:
-        print("警告: 无法获取csrf")
+        Logger.warning("无法获取 csrf")
         return ""
+
 
 def getCookieFromUser():
     if not environ.get("gui", False):
-        if "n" in input("是否使用二维码登录B站, 默认为是(y/n): ").lower():
-            return getpass("Bilibili cookie: ")
+        if "n" in input("是否使用二维码登录B站(Y/n): ").lower():
+            return getpass("Please input Bilibili cookie: ")
         else:
-            return biliauth.bilibiliAuth()
+            return biliauth.biliLogin()
     else:
-        return biliauth.bilibiliAuth()
-        
+        return biliauth.biliLogin()
+
+
 def checkCookie():
     result = requests.get(
         "https://passport.bilibili.com/x/passport-login/web/cookie/info",
-        headers = headers,
-        data = {
+        headers=headers,
+        data={
             "csrf": csrf
         }
     ).json()
     return result["code"] == 0 and not result.get("data", {}).get("refresh", True)
 
-if not exists("./config.json"):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-        "Cookie": getCookieFromUser()
-    }
 
-    csrf = getCsrf(headers["Cookie"])
+putConfigVariables()
 
-    bili_report_api = True
-    reply_limit = 100
-    enable_gpt = False
-    gpt.openai.api_key = ""
-    gpt.gpt_model = "gpt-4o-mini"
-    enable_check_lv2avatarat = False
-    enable_check_replyimage = False
-    enable_check_user = False
-else:
-    with open("./config.json", "r", encoding="utf-8") as f:
-        try:
-            putConfigVariables(json.load(f))
-        except Exception as e:
-            print("加载config.json失败, 请删除或修改config.json, 错误:", repr(e))
-            print("如果你之前更新过BiliClear, 请删除config.json并重新运行")
-            print("请按回车键退出...")
-            syscmds.pause()
-            raise SystemExit
 
 if not checkCookie():
-    print("bilibili cookie已过期或失效, 请重新登录")
+    Logger.warning("Bilibili cookie 已失效, 请重新登录")
     headers["Cookie"] = getCookieFromUser()
+    Config.save()
     csrf = getCsrf(headers["Cookie"])
 
-try:
-    saveConfig()
-except Exception as e:
-    print("警告: 保存config.json失败, 错误:", e)
-
 text_checker = checker.Checker()
-face_detector = cv2.CascadeClassifier("./res/haarcascade_frontalface_default.xml")
 
-def _btyes2cv2im(byte_data):
-    nparr = np.frombuffer(byte_data, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    return img
-
-def _img_face(img: cv2.typing.MatLike):
-    return not isinstance(
-        face_detector.detectMultiScale(
-            cv2.cvtColor(img, cv2.COLOR_BGR2GRAY),
-            scaleFactor=1.2, minNeighbors=1
-        ),
-        tuple
-    )
-
-def _img_qrcode(img: cv2.typing.MatLike):
-    return cv2.QRCodeDetector().detect(img)[0]
 
 def getVideos():
     "获取推荐视频列表"
@@ -166,6 +96,7 @@ def getVideos():
         for i in requests.get(f"https://app.bilibili.com/x/v2/feed/index", headers=headers).json()["data"]["items"]
         if i.get("can_play", 0)
     ]
+
 
 def getReplys(avid: str | int):
     "获取评论"
@@ -176,7 +107,7 @@ def getReplys(avid: str | int):
         time.sleep(0.4)
         result = requests.get(
             f"https://api.bilibili.com/x/v2/reply?type=1&oid={avid}&nohot=1&pn={page}&ps=20",
-            headers = headers
+            headers=headers
         ).json()
         try:
             if not result["data"]["replies"]:
@@ -187,49 +118,47 @@ def getReplys(avid: str | int):
         page += 1
     return replies
 
-def _checkUser(uid: int|str):
+
+def _checkUser(uid: int | str):
     "检查用户是否需要举报 (用于检测)"
     user_crad = requests.get(
         f"https://api.bilibili.com/x/web-interface/card?mid={uid}",
-        headers = headers
+        headers=headers
     ).json()["data"]["card"]
-    
+
     if user_crad["spacesta"] == -2:
-        return False # 封了, 没必要
-    
-    if user_crad["level_info"]["current_level"] != 2:
-        return False # 不是 lv.2, 没必要
-    
+        return False  # 封了, 没必要
+
+    # if user_crad["level_info"]["current_level"] != 2:
+    #    return False  # 不是 lv.2, 没必要
+
     dynamics = [i["modules"]["module_dynamic"] for i in requests.get(
         f"https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/all?host_mid={uid}",
-        headers = headers
+        headers=headers
     ).json()["data"]["items"]]
-    
+
     for dynamic in dynamics:
         if dynamic["desc"] is None:
             continue
-        
+
         text = dynamic["desc"]["text"]
         if isPorn(text):
             return True
-        
+
         if dynamic["major"] is None:
             continue
         elif dynamic["major"]["type"] != "MAJOR_TYPE_DRAW":
             continue
-        
-        ims = [_btyes2cv2im(requests.get(i["src"]).content) for i in dynamic["major"]["draw"]["items"]]
-        if any([_img_qrcode(img) for img in ims]):
-            return True
-    
+
     return False
 
-def reqBiliReportUser(uid: int|str):
+
+def reqBiliReportUser(uid: int | str):
     "调用B站举报用户API"
     result = requests.post(
         "https://space.bilibili.com/ajax/report/add",
-        headers = headers,
-        data = {
+        headers=headers,
+        data={
             "mid": int(uid),
             "reason": "1, 2, 3",
             "reason_v2": 1,
@@ -239,25 +168,24 @@ def reqBiliReportUser(uid: int|str):
     time.sleep(3.5)
     result_code = result["code"]
     if result_code not in (0, 12019):
-        print("b站举报用户API调用失败, 返回体：", result)
-    elif result_code == 0:
-        print("Bilibili举报用户API调用成功")
+        Logger.error("b站举报用户uid: {} 失败, 返回体：{}".format(uid, result))
     elif result_code == 12019:
-        print("举报过于频繁, 等待15s")
+        Logger.warning("举报过于频繁, 等待 15s")
         time.sleep(15)
         return reqBiliReportUser(uid)
 
-def processUser(uid: int|str):
+
+def processUser(uid: int | str):
     "处理用户"
     if _checkUser(uid):
-        print(f"用户{uid}违规")
+        Logger.info(f"用户{uid}违规")
         reqBiliReportUser(uid)
-    else:
-        print(f"用户{uid}未违规")
-        
+
+
 def isPorn(text: str):
     "判断评论是否为色情内容 (使用规则, rules.yaml)"
     return text_checker.check(text)
+
 
 def reqBiliReportReply(data: dict, rule: str | None):
     "调用B站举报评论API"
@@ -271,7 +199,6 @@ def reqBiliReportReply(data: dict, rule: str | None):
             "reason": 0,
             "csrf": csrf,
             "content": f"""
-举报原因: 色情, 或...
 程序匹配到的规则: {rule}
 (此举报信息自动生成, 可能会存在误报)
 """
@@ -280,26 +207,27 @@ def reqBiliReportReply(data: dict, rule: str | None):
     time.sleep(3.5)
     result_code = result["code"]
     if result_code not in (0, 12019, -352):
-        print("b站举报评论API调用失败, 返回体:", result)
-    elif result_code == 0:
-        print("Bilibili举报评论API调用成功")
+        Logger.error("b站举报评论 API 调用失败, 返回体：{}".format(result))
     elif result_code == 12019:
-        print("举报过于频繁, 等待15s")
+        Logger.warning("举报过于频繁, 等待15s")
         time.sleep(15)
         return reqBiliReportReply(data, rule)
     elif result_code == -352:
-        print(f"举报评论的B站API调用失败, 返回 -352, 请尝试手动举报1次, {avid2bvid(data["oid"])}")
+        Logger.critical(
+            "举报评论的B站 API 调用失败, 返回 -352, 请尝试手动举报1次, {}".format(avid2bvid(data["oid"])))
         waitRiskControl()
         return reqBiliReportReply(data, rule)
 
+
 def reportReply(data: dict, r: str | None):
-    print("\n违规评论:", repr(data["content"]["message"]))
-    print("规则:", r)
+    Logger.info("违规评论: {}".format(repr(data["content"]["message"])))
+    Logger.info("命中规则: {}".format(r))
 
     if bili_report_api:
         reqBiliReportReply(data, r)
 
     print()  # next line
+
 
 def replyIsViolations(reply: dict):
     "判断评论是否违规, 返回: (是否违规, 违规原因) 如果没有违规, 返回 (False, None)"
@@ -311,39 +239,8 @@ def replyIsViolations(reply: dict):
     if "doge" in reply_msg:
         return False, None
 
-    if not isp and enable_gpt:
-        try:
-            isp, r = gpt.gpt_porn(reply_msg) or gpt.gpt_ad(reply_msg), f"ChatGpt - {gpt.gpt_model} 检测到违规内容"
-            print(f"调用GPT进行检测, 结果: {isp}")
-        except gpt.RateLimitError:
-            enable_gpt = False
-            saveConfig()
-            print("GPT请求达到限制, 已关闭GPT检测")
-
-    if not isp and enable_check_lv2avatarat and reply["member"]["level_info"][
-        "current_level"] == 2 and "@" in reply_msg:
-        avatar_image = requests.get(
-            reply["member"]["avatar"],
-            headers=headers
-        ).content
-        if _img_face(_btyes2cv2im(avatar_image)):
-            isp, r = True, "lv.2, 检测到头像中包含人脸,可疑"
-        print(f"lv.2和人脸检测, 结果: {isp}")
-
-    if not isp and enable_check_replyimage and reply["member"]["level_info"]["current_level"] == 2:
-        try:
-            images = [requests.get(i["img_src"], headers=headers).content for i in reply["content"].get("pictures", [])]
-            opencv_images = [_btyes2cv2im(img) for img in images]
-            have_qrcode = any([_img_qrcode(img) for img in opencv_images])
-            have_face = any([_img_face(img) for img in opencv_images])
-
-            if have_qrcode or have_face:
-                isp, r = True, "lv.2, 检测到评论中包含二维码或人脸, 可疑"
-            print(f"lv.2和二维码、人脸检测, 结果: {isp}")
-        except Exception as e:
-            print("警告: 二维码或人脸检测时发生错误, 已跳过", repr(e))
-
     return isp, r
+
 
 def processReply(reply: dict):
     "处理评论并举报"
@@ -356,12 +253,15 @@ def processReply(reply: dict):
     if isp:
         violationsReplyCount += 1
         reportReply(reply, r)
-        violationsReplies.insert(0, (reply["rpid"], reply["content"]["message"], time.time()))
+        violationsReplies.insert(
+            0, (reply["rpid"], reply["content"]["message"], time.time()))
 
-    checkedReplies.insert(0, (reply["rpid"], reply["content"]["message"], time.time()))
+    checkedReplies.insert(
+        0, (reply["rpid"], reply["content"]["message"], time.time()))
     checkedReplies = checkedReplies[:1500]
     violationsReplies = violationsReplies[:1500]
     return isp, r
+
 
 def _setMethod():
     global method
@@ -372,30 +272,31 @@ def _setMethod():
         "3": "检查指定UID"
     }
 
-    print("BiliClear - github.com/qaqFei/BiliClear")
-    print("\n请选择操作: ")
+    Logger.info("请选择操作: ")
     while method not in method_choices.keys():
         if method is not None:
-            print("输入错误")
+            Logger.warning("输入错误")
 
         for k, v in method_choices.items():
-            print(f"{k}. {v}")
+            Logger.info(f"{k}. {v}")
         method = input("选择: ")
-        syscmds.clearScreen()
+
 
 def bvid2avid(bvid: str):
     result = requests.get(
         f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}",
-        headers = headers
+        headers=headers
     ).json()
     return result["data"]["aid"]
+
 
 def avid2bvid(avid: str):
     result = requests.get(
         f"https://api.bilibili.com/x/web-interface/view?aid={avid}",
-        headers = headers
+        headers=headers
     ).json()
     return result["data"]["bvid"]
+
 
 videoCount = 0
 replyCount = 0
@@ -406,28 +307,32 @@ checkedVideos = []
 checkedReplies = []
 violationsReplies = []
 
+
 def _checkVideo(avid: str | int):
     for reply in getReplys(avid):
         if enable_check_user:
             processUser(reply["mid"])
         processReply(reply)
 
+
 def checkNewVideos():
     global videoCount, replyCount, violationsReplyCount, checkedVideos
 
-    print("".join([("\n" if videoCount != 0 else ""), "开始检查新一轮推荐视频..."]))
-    print(f"已检查视频: {videoCount}")
-    print(f"已检查评论: {replyCount}")
-    print(f"已举报评论: {violationsReplyCount} 评论违规率: {((violationsReplyCount / replyCount * 100) if replyCount != 0 else 0.0):.5f}%")
-    print()  # next line
+    Logger.info("".join([("\n" if videoCount != 0 else ""), "开始检查新一轮推荐视频..."]))
+    Logger.info(f"已检查视频: {videoCount}")
+    Logger.info(f"已检查评论: {replyCount}")
+    Logger.info(
+        f"已举报评论: {violationsReplyCount} 评论违规率: {((violationsReplyCount / replyCount * 100) if replyCount != 0 else 0.0):.5f}%")
+    Logger.info("")
 
     for avid in getVideos():
-        print(f"开始检查视频: av{avid}, 现在时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}")
+        Logger.info("开始检查视频: av{}".format(avid))
         _checkVideo(avid)
         videoCount += 1
         checkedVideos.insert(0, (avid, time.time()))
         checkedVideos = checkedVideos[:1500]
     time.sleep(1.25)
+
 
 def checkVideo(bvid: str):
     global videoCount, checkedVideos
@@ -439,6 +344,7 @@ def checkVideo(bvid: str):
     checkedVideos = checkedVideos[:1500]
     time.sleep(1.25)
 
+
 def waitRiskControl(output: bool = True):
     global waitRiskControl_TimeRemaining, waitingRiskControl
 
@@ -446,17 +352,21 @@ def waitRiskControl(output: bool = True):
     stopMinute = 3
     waitRiskControl_TimeRemaining = 60 * stopMinute
     waitingRiskControl = True
-    print(f"警告!!! B站API返回了非JSON格式数据, 大概率被风控, 暂停{stopMinute}分钟...")
+    Logger.warning(f"Bili API 返回了非 JSON 格式数据, 可能被风控, 暂停{stopMinute}分钟...")
     while time.time() - stopSt < 60 * stopMinute:
-        waitRiskControl_TimeRemaining = 60 * stopMinute - (time.time() - stopSt)
+        waitRiskControl_TimeRemaining = 60 * \
+            stopMinute - (time.time() - stopSt)
         if output:
-            print(f"由于可能被风控, BiliClear暂停{stopMinute}分钟, 还剩余: {waitRiskControl_TimeRemaining:.2f}s")
+            Logger.warning(
+                f"由于可能被风控, BiliClear 暂停{stopMinute}分钟, 还剩余: {waitRiskControl_TimeRemaining:.2f}s")
             time.sleep(1.5)
         else:
             time.sleep(0.005)
     waitingRiskControl = False
 
+
 if __name__ == "__main__":
+    Logger.info("BiliClearX - github.com/molanp/BiliClearX")
     _setMethod()
     while True:
         try:
@@ -464,12 +374,12 @@ if __name__ == "__main__":
                 case "1":
                     checkNewVideos()
                 case "2":
-                    checkVideo(input("输入视频bvid: "))
+                    checkVideo(input("输入视频 bvid: "))
                 case "3":
-                    processUser(input("输入UID: "))
+                    processUser(input("输入用户 UID: "))
                 case _:
-                    assert False, "unknow method"
+                    assert False, "Unknow method."
         except Exception as e:
-            print("错误", repr(e))
+            Logger.error(repr(e))
             if isinstance(e, json.JSONDecodeError):
                 waitRiskControl()

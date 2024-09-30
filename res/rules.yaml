@@ -34,10 +34,6 @@ rules_exact:
   - ["那一抹春色", "美好"]
   - ["玉米棒子", "花蕊"]
   - ["尖端玩具", "汗水成河"]
-  - ["isgou.cn"]
-  - ["出汗", "新动作"]
-  - ["QWAH.cznnew.cn"]
-  - ["http", "$-not https", "$-not bilibili", "$-not 163cn.tv"]
 
 rules_elastic:
   - "点击我头像有好东西"

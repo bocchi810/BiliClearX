@@ -3,11 +3,12 @@ import yaml
 import unicodedata
 
 from Levenshtein import ratio
+from utils.config import ROOT
 
 class Checker:
     def __init__(self) -> None:
         try:
-            with open("./res/rules.yaml", "r", encoding="utf-8") as f:
+            with open(ROOT / "res" / "rules.yaml", "r", encoding="utf-8") as f:
                 config = yaml.safe_load(f)
         except Exception as e:
             print("警告: 无法加载规则文件,", e)
@@ -35,7 +36,7 @@ class Checker:
                 if re.search(item.lower(), text):
                     return True, item
             
-        return False, ""
+        return False, "用户自定义规则命中"
 
     def check_v2(self, text: str, threshold: float = 0.7):
         "检查字符串, 并根据匹配程度进行判断 threshold: 匹配程度阈值"
