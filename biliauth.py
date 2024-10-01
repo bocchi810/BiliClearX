@@ -4,6 +4,7 @@ import tkinter
 import threading
 import signal
 import io
+import sys
 from urllib.parse import quote_plus
 from PIL import Image, ImageTk
 from utils.logger import Logger
@@ -14,7 +15,7 @@ _qrcode_image = None
 def signal_handler(signal, frame):
     print()
     Logger.warning(f"用户已退出进程 Code: {signal}")
-    exit(0)
+    sys.exit(0)
 
 
 signal.signal(signal.SIGINT, signal_handler)

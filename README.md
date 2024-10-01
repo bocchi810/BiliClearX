@@ -7,11 +7,11 @@
 
 
 # TODO
-- [ ] `BiliClearX` 的 WebUI 重构 [#71](https://github.com/qaqFei/BiliClear/issues/71)
+- ~~[x] `BiliClearX` 的 WebUI 重构 [#71](https://github.com/qaqFei/BiliClear/issues/71)~~太麻烦了，砍了
 - [ ] `BiliClearX` 的审核系统实现(此项会同时解决误判问题) [#62](https://github.com/qaqFei/BiliClear/issues/62) [#50](https://github.com/qaqFei/BiliClear/issues/50) [#66](https://github.com/qaqFei/BiliClear/issues/66) [#64](https://github.com/qaqFei/BiliClear/issues/64)
-- [ ] `BiliClearX` 指定举报人实现 [#38](https://github.com/qaqFei/BiliClear/issues/38)
-- [ ] `BiliClearX` 举报策略调整 [#??](#)
-- [ ] 支持较低版本的 Python ![Python Version](https://img.shields.io/badge/Python%20Version-%3E%3D3.10-blue)
+- [x] `BiliClearX` 指定举报人实现 [#38](https://github.com/qaqFei/BiliClear/issues/38)
+- [x] `BiliClearX` 举报策略调整 [#??](#)
+- [x] 支持较低版本的 Python ![Python Version](https://img.shields.io/badge/Python%20Version-%3E%3D3.10-blue)
 
 
 ![BiliClearX](https://socialify.git.ci/molanp/BiliClearX/image?description=1&descriptionEditable=Report%20violating%20Bilibili%20users%20in%20batches.&font=Jost&forks=1&issues=1&language=1&name=1&owner=1&pattern=Charlie%20Brown&pulls=1&stargazers=1&theme=Auto)

@@ -1,6 +1,7 @@
 import ujson as json
 import re
 import time
+import asyncio
 import requests
 import biliauth
 from requests.packages import urllib3  # type: ignore
@@ -8,17 +9,20 @@ from utils import checker
 from compatible_getpass import getpass
 from os import environ
 from utils.config import Config
+from utils.database import db
 from utils.logger import Logger
 
 
-urllib3.disable_warnings(
-    urllib3.exceptions.InsecureRequestWarning)
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 loaded = False
 headers = {}
 
 
 def checkRuleUpdate():
     pass
+
+
 #    try:
 #        new_rules = requests.get(open(
 #            "./RULE_SOURCE", "r", encoding="utf-8").read(), verify=False).content.decode("utf-8")
@@ -70,30 +74,18 @@ def checkCookie():
     result = requests.get(
         "https://passport.bilibili.com/x/passport-login/web/cookie/info",
         headers=headers,
-        data={
-            "csrf": csrf
-        }
+        data={"csrf": csrf},
     ).json()
     return result["code"] == 0 and not result.get("data", {}).get("refresh", True)
-
-
-putConfigVariables()
-
-
-if not checkCookie():
-    Logger.warning("Bilibili cookie 已失效, 请重新登录")
-    headers["Cookie"] = getCookieFromUser()
-    Config.save()
-    csrf = getCsrf(headers["Cookie"])
-
-text_checker = checker.Checker()
 
 
 def getVideos():
     "获取推荐视频列表"
     return [
         i["param"]
-        for i in requests.get(f"https://app.bilibili.com/x/v2/feed/index", headers=headers).json()["data"]["items"]
+        for i in requests.get(
+            "https://app.bilibili.com/x/v2/feed/index", headers=headers
+        ).json()["data"]["items"]
         if i.get("can_play", 0)
     ]
 
@@ -107,7 +99,7 @@ def getReplys(avid: str | int):
         time.sleep(0.4)
         result = requests.get(
             f"https://api.bilibili.com/x/v2/reply?type=1&oid={avid}&nohot=1&pn={page}&ps=20",
-            headers=headers
+            headers=headers,
         ).json()
         try:
             if not result["data"]["replies"]:
@@ -122,8 +114,7 @@ def getReplys(avid: str | int):
 def _checkUser(uid: int | str):
     "检查用户是否需要举报 (用于检测)"
     user_crad = requests.get(
-        f"https://api.bilibili.com/x/web-interface/card?mid={uid}",
-        headers=headers
+        f"https://api.bilibili.com/x/web-interface/card?mid={uid}", headers=headers
     ).json()["data"]["card"]
 
     if user_crad["spacesta"] == -2:
@@ -132,10 +123,13 @@ def _checkUser(uid: int | str):
     # if user_crad["level_info"]["current_level"] != 2:
     #    return False  # 不是 lv.2, 没必要
 
-    dynamics = [i["modules"]["module_dynamic"] for i in requests.get(
-        f"https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/all?host_mid={uid}",
-        headers=headers
-    ).json()["data"]["items"]]
+    dynamics = [
+        i["modules"]["module_dynamic"]
+        for i in requests.get(
+            f"https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/all?host_mid={uid}",
+            headers=headers,
+        ).json()["data"]["items"]
+    ]
 
     for dynamic in dynamics:
         if dynamic["desc"] is None:
@@ -153,17 +147,12 @@ def _checkUser(uid: int | str):
     return False
 
 
-def reqBiliReportUser(uid: int | str):
+async def reqBiliReportUser(uid: int | str):
     "调用B站举报用户API"
     result = requests.post(
         "https://space.bilibili.com/ajax/report/add",
         headers=headers,
-        data={
-            "mid": int(uid),
-            "reason": "1, 2, 3",
-            "reason_v2": 1,
-            "csrf": csrf
-        }
+        data={"mid": int(uid), "reason": "1, 2, 3", "reason_v2": 1, "csrf": csrf},
     ).json()
     time.sleep(3.5)
     result_code = result["code"]
@@ -175,19 +164,19 @@ def reqBiliReportUser(uid: int | str):
         return reqBiliReportUser(uid)
 
 
-def processUser(uid: int | str):
+async def processUser(uid: int | str):
     "处理用户"
     if _checkUser(uid):
         Logger.info(f"用户{uid}违规")
-        reqBiliReportUser(uid)
+        await reqBiliReportUser(uid)
 
 
-def isPorn(text: str):
+async def isPorn(text: str):
     "判断评论是否为色情内容 (使用规则, rules.yaml)"
     return text_checker.check(text)
 
 
-def reqBiliReportReply(data: dict, rule: str | None):
+async def reqBiliReportReply(data: dict, rule: str | None):
     "调用B站举报评论API"
     result = requests.post(
         "https://api.bilibili.com/x/v2/reply/report",
@@ -201,8 +190,8 @@ def reqBiliReportReply(data: dict, rule: str | None):
             "content": f"""
 程序匹配到的规则: {rule}
 (此举报信息自动生成, 可能会存在误报)
-"""
-        }
+""",
+        },
     ).json()
     time.sleep(3.5)
     result_code = result["code"]
@@ -214,27 +203,29 @@ def reqBiliReportReply(data: dict, rule: str | None):
         return reqBiliReportReply(data, rule)
     elif result_code == -352:
         Logger.critical(
-            "举报评论的B站 API 调用失败, 返回 -352, 请尝试手动举报1次, {}".format(avid2bvid(data["oid"])))
-        waitRiskControl()
+            "举报评论的B站 API 调用失败, 返回 -352, 请尝试手动举报1次, {}".format(
+                avid2bvid(data["oid"])
+            )
+        )
+        await waitRiskControl()
         return reqBiliReportReply(data, rule)
 
 
-def reportReply(data: dict, r: str | None):
-    Logger.info("违规评论: {}".format(repr(data["content"]["message"])))
-    Logger.info("命中规则: {}".format(r))
+async def reportReply(data: dict, rule: str | None):
+    db.insert("report", {"data": json.dumps(data), "rule": rule})
+    #Logger.info("违规评论: {}".format(repr(data["content"]["message"])))
+    #Logger.info("命中规则: {}".format(rule))
 
-    if bili_report_api:
-        reqBiliReportReply(data, r)
-
-    print()  # next line
+    # if bili_report_api:
+    #    await reqBiliReportReply(data, r)
 
 
-def replyIsViolations(reply: dict):
+async def replyIsViolations(reply: dict):
     "判断评论是否违规, 返回: (是否违规, 违规原因) 如果没有违规, 返回 (False, None)"
     global enable_gpt
 
     reply_msg = reply["content"]["message"]
-    isp, r = isPorn(reply_msg)
+    isp, r = await isPorn(reply_msg)
 
     if "doge" in reply_msg:
         return False, None
@@ -242,22 +233,22 @@ def replyIsViolations(reply: dict):
     return isp, r
 
 
-def processReply(reply: dict):
+async def processReply(reply: dict):
     "处理评论并举报"
     global replyCount, violationsReplyCount
     global checkedReplies, violationsReplies
 
     replyCount += 1
-    isp, r = replyIsViolations(reply)
+    isp, r = await replyIsViolations(reply)
 
     if isp:
         violationsReplyCount += 1
-        reportReply(reply, r)
+        await reportReply(reply, r)
         violationsReplies.insert(
-            0, (reply["rpid"], reply["content"]["message"], time.time()))
+            0, (reply["rpid"], reply["content"]["message"], time.time())
+        )
 
-    checkedReplies.insert(
-        0, (reply["rpid"], reply["content"]["message"], time.time()))
+    checkedReplies.insert(0, (reply["rpid"], reply["content"]["message"], time.time()))
     checkedReplies = checkedReplies[:1500]
     violationsReplies = violationsReplies[:1500]
     return isp, r
@@ -269,7 +260,7 @@ def _setMethod():
     method_choices = {
         "1": "自动获取推荐视频评论",
         "2": "获取指定视频评论",
-        "3": "检查指定UID"
+        "3": "检查指定UID",
     }
 
     Logger.info("请选择操作: ")
@@ -284,16 +275,14 @@ def _setMethod():
 
 def bvid2avid(bvid: str):
     result = requests.get(
-        f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}",
-        headers=headers
+        f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}", headers=headers
     ).json()
     return result["data"]["aid"]
 
 
 def avid2bvid(avid: str):
     result = requests.get(
-        f"https://api.bilibili.com/x/web-interface/view?aid={avid}",
-        headers=headers
+        f"https://api.bilibili.com/x/web-interface/view?aid={avid}", headers=headers
     ).json()
     return result["data"]["bvid"]
 
@@ -308,57 +297,62 @@ checkedReplies = []
 violationsReplies = []
 
 
-def _checkVideo(avid: str | int):
+async def _checkVideo(avid: str | int):
     for reply in getReplys(avid):
         if enable_check_user:
-            processUser(reply["mid"])
-        processReply(reply)
+            await processUser(reply["mid"])
+        await processReply(reply)
 
 
-def checkNewVideos():
+async def checkNewVideos():
     global videoCount, replyCount, violationsReplyCount, checkedVideos
 
-    Logger.info("".join([("\n" if videoCount != 0 else ""), "开始检查新一轮推荐视频..."]))
+    Logger.info(
+        "".join([("\n" if videoCount != 0 else ""), "开始检查新一轮推荐视频..."])
+    )
     Logger.info(f"已检查视频: {videoCount}")
     Logger.info(f"已检查评论: {replyCount}")
     Logger.info(
-        f"已举报评论: {violationsReplyCount} 评论违规率: {((violationsReplyCount / replyCount * 100) if replyCount != 0 else 0.0):.5f}%")
+        f"已举报评论: {violationsReplyCount} 评论违规率: {((violationsReplyCount / replyCount * 100) if replyCount != 0 else 0.0):.5f}%"
+    )
     Logger.info("")
 
     for avid in getVideos():
         Logger.info("开始检查视频: av{}".format(avid))
-        _checkVideo(avid)
+        await _checkVideo(avid)
         videoCount += 1
         checkedVideos.insert(0, (avid, time.time()))
         checkedVideos = checkedVideos[:1500]
     time.sleep(1.25)
 
 
-def checkVideo(bvid: str):
+async def checkVideo(bvid: str):
     global videoCount, checkedVideos
 
     avid = bvid2avid(bvid)
-    _checkVideo(avid)
+    await _checkVideo(avid)
     videoCount += 1
     checkedVideos.insert(0, (avid, time.time()))
     checkedVideos = checkedVideos[:1500]
     time.sleep(1.25)
 
 
-def waitRiskControl(output: bool = True):
+async def waitRiskControl(output: bool = True):
     global waitRiskControl_TimeRemaining, waitingRiskControl
 
     stopSt = time.time()
     stopMinute = 3
     waitRiskControl_TimeRemaining = 60 * stopMinute
     waitingRiskControl = True
-    Logger.warning(f"Bili API 返回了非 JSON 格式数据, 可能被风控, 暂停{stopMinute}分钟...")
+    Logger.warning(
+        f"Bili API 返回了非 JSON 格式数据, 可能被风控, 暂停{stopMinute}分钟..."
+    )
     while time.time() - stopSt < 60 * stopMinute:
-        waitRiskControl_TimeRemaining = 60 * \
-            stopMinute - (time.time() - stopSt)
+        waitRiskControl_TimeRemaining = 60 * stopMinute - (time.time() - stopSt)
         if output:
             Logger.warning(
-                f"由于可能被风控, BiliClear 暂停{stopMinute}分钟, 还剩余: {waitRiskControl_TimeRemaining:.2f}s")
+                f"由于可能被风控, BiliClear 暂停{stopMinute}分钟, 还剩余: {waitRiskControl_TimeRemaining:.2f}s"
+            )
             time.sleep(1.5)
         else:
             time.sleep(0.005)
@@ -367,19 +361,28 @@ def waitRiskControl(output: bool = True):
 
 if __name__ == "__main__":
     Logger.info("BiliClearX - github.com/molanp/BiliClearX")
+    
+    putConfigVariables()
+    if not checkCookie():
+        Logger.warning("Bilibili cookie 已失效, 请重新登录")
+        headers["Cookie"] = getCookieFromUser()
+        Config.save()
+        csrf = getCsrf(headers["Cookie"])
+
+    text_checker = checker.Checker()
     _setMethod()
     while True:
         try:
             match method:
                 case "1":
-                    checkNewVideos()
+                    asyncio.run(checkNewVideos())
                 case "2":
-                    checkVideo(input("输入视频 bvid: "))
+                    asyncio.run(checkVideo(input("输入视频 bvid: ")))
                 case "3":
-                    processUser(input("输入用户 UID: "))
+                    asyncio.run(processUser(input("输入用户 UID: ")))
                 case _:
                     assert False, "Unknow method."
         except Exception as e:
             Logger.error(repr(e))
             if isinstance(e, json.JSONDecodeError):
-                waitRiskControl()
+                asyncio.run(waitRiskControl())

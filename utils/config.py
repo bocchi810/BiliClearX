@@ -12,9 +12,6 @@ class CFG:
         self.default = {
             "console_log_level": "debug",
             "file_log_level": "info",
-            "enable_webui": True,
-            "host": "127.0.0.1",
-            "port": 8080,
             "bili_report_api": True,
             "reply_limit": 100,
             "enable_check_user": False,

@@ -1,55 +1,83 @@
-import aiosqlite
+import sqlite3
 from utils.config import ROOT
+
 
 
 class Database:
     def __init__(self, db_name: str = str(ROOT / "configs" / "biliclear.db")):
         self.db_name = db_name
+        self.connection = None
 
-    async def _get_connection(self):
-        return await aiosqlite.connect(self.db_name)
+    def _get_connection(self):
+        if self.connection is None:
+            self.connection = sqlite3.connect(self.db_name)
+        return self.connection
 
-    # 异步执行SQL语句
-    async def execute(self, sql, params=None):
-        async with await self._get_connection() as conn:
-            async with conn.cursor() as cursor:
-                if params:
-                    await cursor.execute(sql, params)
-                else:
-                    await cursor.execute(sql)
-                await conn.commit()
-                return cursor
+    def execute(self, sql, params=None):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        try:
+            if params:
+                cursor.execute(sql, params)
+            else:
+                cursor.execute(sql)
+            conn.commit()
+            return cursor
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            cursor.close()
 
-    # 插入数据
-    async def insert(self, table, data):
+    def create_table_if_not_exists(self, table_name: str, fields: dict):
+        """
+        检查指定的表是否已存在，如果不存在则创建它。
+        :param table_name: 表名
+        :param fields: 字段定义，键为字段名，值为SQL字段类型字符串
+        """
+        create_table_sql = (
+            f"CREATE TABLE IF NOT EXISTS {table_name} (" +
+            ", ".join([f"{name} {type}" for name, type in fields.items()]) +
+            ")"
+        )
+        self.execute(create_table_sql)
+
+    def insert(self, table, data):
         columns = ', '.join(data.keys())
-        placeholders = ', '.join('?' * len(data))
+        placeholders = ', '.join(['?'] * len(data))
         sql = f'INSERT INTO {table} ({columns}) VALUES ({placeholders})'
-        await self.execute(sql, list(data.values()))
+        self.execute(sql, list(data.values()))
 
-    # 删除数据
-    async def delete(self, table, condition):
+    def delete(self, table, condition):
         sql = f'DELETE FROM {table} WHERE {condition}'
-        await self.execute(sql)
+        self.execute(sql)
 
-    # 查询所有数据
-    async def select_all(self, table):
+    def select_all(self, table):
         sql = f'SELECT * FROM {table}'
-        async with await self._get_connection() as conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(sql)
-                return await cursor.fetchall()
+        cursor = self.execute(sql)
+        return cursor.fetchall()
 
-    # 条件查询
-    async def select_where(self, table, condition):
+    def select_where(self, table, condition):
         sql = f'SELECT * FROM {table} WHERE {condition}'
-        async with await self._get_connection() as conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(sql)
-                return await cursor.fetchall()
+        cursor = self.execute(sql)
+        return cursor.fetchall()
 
-    # 更新数据
-    async def update(self, table, data, condition):
+    def update(self, table, data, condition):
         set_clause = ', '.join([f'{k} = ?' for k in data.keys()])
         sql = f'UPDATE {table} SET {set_clause} WHERE {condition}'
-        await self.execute(sql, list(data.values()))
+        self.execute(sql, list(data.values()))
+
+    def close(self):
+        if self.connection:
+            self.connection.close()
+
+
+db = Database()
+db.create_table_if_not_exists(
+    'report',
+    {
+        'id': 'INTEGER PRIMARY KEY',
+        'data': 'TEXT NOT NULL',
+        'rule': 'TEXT'
+    }
+)
