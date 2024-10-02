@@ -10,6 +10,7 @@ headers = Config.get("headers")
 waitRiskControl_TimeRemaining = float("nan")
 waitingRiskControl = False
 status_text = "按 q 退出"
+offset = 0
 content_text = r"""
   ____    _   _   _    ____   _                        __  __
  | __ )  (_) | | (_)  / ___| | |   ___    __ _   _ __  \ \/ /

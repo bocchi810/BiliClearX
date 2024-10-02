@@ -1,3 +1,4 @@
+import argparse
 import ujson as json
 import re
 import time
@@ -189,7 +190,7 @@ async def replyIsViolations(reply: dict):
 
 
 async def processReply(reply: dict):
-    "处理评论并举报"
+    "处理评论并加入举报列表"
     global replyCount, violationsReplyCount
 
     replyCount += 1
@@ -208,8 +209,7 @@ async def processReply(reply: dict):
                 "rule": r,
             },
         )
-
-    checkedReplies.insert(0, (reply["rpid"], reply["content"]["message"], time.time()))
+    
     db.insert(
         "report",
         {
@@ -227,6 +227,10 @@ async def processReply(reply: dict):
 def _setMethod():
     global method
     method = None
+    args = parser.parse_args()
+
+    if args.mode is not None:
+        method = args.mode
     method_choices = {
         "1": "自动获取推荐视频评论",
         "2": "获取指定视频评论",
@@ -255,9 +259,6 @@ replyCount = 0
 violationsReplyCount = 0
 waitRiskControl_TimeRemaining = float("nan")
 waitingRiskControl = False
-checkedVideos = []
-checkedReplies = []
-violationsReplies = []
 
 
 async def _checkVideo(avid: str | int):
@@ -323,6 +324,10 @@ async def waitRiskControl(output: bool = True):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="处理模式参数")
+    parser.add_argument("--mode", type=int, default=1, help="指定模式，默认为 1，例如 --mode 1")
+    parser.add_argument("--extra", type=int, default=None, help="附加数据")
+
     Logger.info("BiliClearX - github.com/molanp/BiliClearX")
 
     putConfigVariables()
@@ -340,9 +345,15 @@ if __name__ == "__main__":
                 case "1":
                     asyncio.run(checkNewVideos())
                 case "2":
-                    asyncio.run(checkVideo(input("输入视频 bvid: ")))
+                    if parser.parse_args().extra is None:
+                        asyncio.run(checkVideo(input("输入视频 bvid: ")))
+                    else:
+                        asyncio.run(checkVideo(parser.parse_args().extra))
                 case "3":
-                    asyncio.run(processUser(input("输入用户 UID: ")))
+                    if parser.parse_args().extra is None:
+                        asyncio.run(processUser(input("输入用户 UID: ")))
+                    else:
+                        asyncio.run(processUser(parser.parse_args().extra))
                 case _:
                     assert False, "Unknow method."
         except Exception as e:

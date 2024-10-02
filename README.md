@@ -21,6 +21,23 @@
 - `BiliClearX` 是一个可以批量举报B站不良信息的程序
 - `BiliClearX`需使用 **Python 3.10 及以上版本**
 
+## 使用方法
+### 直接运行代码
+- `BiliClearX` 使用 `Python` 开发，使用 `pip` 安装依赖
+```shell
+pip install -r requirements.txt
+```
+- 开始检查评论(此脚本可以一直挂到后台)
+    - `python biliclear.py`
+    - 可以使用`--mode`参数指定模式
+    - `--mode 1`: 检查全部视频
+    - `--mode 2`: 检查指定视频
+        - `--extra bivd`: 视频 bvid，不传入则需要手动输入
+    - `--mode 3`: 检查指定用户
+        - `--extra uid`: 用户 uid，不传入则需要手动输入
+- 人工审查评论(此脚本只有运行过`biliclear.py`且成功登录过才可以用)
+    - `python Review.py`
+
 ## 鸣谢
 
 - [BiliClear](https://github.com/qaqFei/BiliClear)
