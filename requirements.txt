@@ -1,7 +1,5 @@
 ujson
-fastapi
-uvicorn
-aiosqlite
 requests
 Levenshtein
 colorama
+urwid

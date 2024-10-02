@@ -3,7 +3,7 @@ from utils.config import ROOT
 
 
 
-class Database:
+class SQlite:
     def __init__(self, db_name: str = str(ROOT / "configs" / "biliclear.db")):
         self.db_name = db_name
         self.connection = None
@@ -72,12 +72,15 @@ class Database:
             self.connection.close()
 
 
-db = Database()
+db = SQlite()
 db.create_table_if_not_exists(
     'report',
     {
         'id': 'INTEGER PRIMARY KEY',
         'data': 'TEXT NOT NULL',
-        'rule': 'TEXT'
+        'rule': 'TEXT',
+        'status': 'INTEGER',
+        'report_time': 'TIMESTAMP',
+        'time': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
     }
 )
