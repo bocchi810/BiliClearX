@@ -1,10 +1,14 @@
 import sqlite3
-from utils.config import ROOT
-
+from pathlib import Path
 
 
 class SQlite:
-    def __init__(self, db_name: str = str(ROOT / "configs" / "biliclear.db")):
+    def __init__(
+        self,
+        db_name: str = str(
+            Path(__file__).resolve().parent.parent / "configs" / "biliclear.db"
+        ),
+    ):
         self.db_name = db_name
         self.connection = None
 
@@ -36,55 +40,37 @@ class SQlite:
         :param fields: 字段定义，键为字段名，值为SQL字段类型字符串
         """
         create_table_sql = (
-            f"CREATE TABLE IF NOT EXISTS {table_name} (" +
-            ", ".join([f"{name} {type}" for name, type in fields.items()]) +
-            ")"
+            f"CREATE TABLE IF NOT EXISTS {table_name} ("
+            + ", ".join([f"{name} {type}" for name, type in fields.items()])
+            + ")"
         )
         self.execute(create_table_sql)
 
     def insert(self, table, data):
-        columns = ', '.join(data.keys())
-        placeholders = ', '.join(['?'] * len(data))
-        sql = f'INSERT INTO {table} ({columns}) VALUES ({placeholders})'
+        columns = ", ".join(data.keys())
+        placeholders = ", ".join(["?"] * len(data))
+        sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
         self.execute(sql, list(data.values()))
 
     def delete(self, table, condition):
-        sql = f'DELETE FROM {table} WHERE {condition}'
+        sql = f"DELETE FROM {table} WHERE {condition}"
         self.execute(sql)
 
     def select_all(self, table):
-        sql = f'SELECT * FROM {table}'
+        sql = f"SELECT * FROM {table}"
         cursor = self.execute(sql)
         return cursor.fetchall()
 
     def select_where(self, table, condition):
-        sql = f'SELECT * FROM {table} WHERE {condition}'
+        sql = f"SELECT * FROM {table} WHERE {condition}"
         cursor = self.execute(sql)
         return cursor.fetchall()
 
     def update(self, table, data, condition):
-        set_clause = ', '.join([f'{k} = ?' for k in data.keys()])
-        sql = f'UPDATE {table} SET {set_clause} WHERE {condition}'
+        set_clause = ", ".join([f"{k} = ?" for k in data.keys()])
+        sql = f"UPDATE {table} SET {set_clause} WHERE {condition}"
         self.execute(sql, list(data.values()))
 
     def close(self):
         if self.connection:
             self.connection.close()
-
-
-db = SQlite()
-db.create_table_if_not_exists(
-    'report',
-    {
-        'id': 'INTEGER PRIMARY KEY',
-        'rpid': 'TEXT',
-        'oid': 'TEXT',
-        'mid': 'TEXT',
-        'content': 'TEXT NOT NULL',
-        'rule': 'TEXT',
-        'is_reported': 'INTEGER DEFAULT 0',
-        'need_report': 'INTEGER DEFAULT 0',
-        'report_time': 'TIMESTAMP',
-        'time': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
-    }
-)

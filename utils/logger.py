@@ -4,26 +4,9 @@ import threading
 import datetime
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from io import StringIO
-from utils.config import ROOT, Config
+from utils.config import CFG
+from pathlib import Path
 from colorama import init, Fore, Style
-
-
-# 初始化 colorama
-init(autoreset=True)
-
-console_log_level = Config.get('console_log_level')
-file_log_level = Config.get('file_log_level')
-
-log_level_map = {
-    'DEBUG': DEBUG,
-    'INFO': INFO,
-    'WARNING': WARNING,
-    'ERROR': ERROR,
-    'CRITICAL': CRITICAL
-}
-
-console_log_level_int = log_level_map.get(console_log_level.upper(), DEBUG)
-file_log_level_int = log_level_map.get(file_log_level.upper(), INFO)
 
 
 class CustomFormatter(logging.Formatter):
@@ -35,17 +18,33 @@ class CustomFormatter(logging.Formatter):
     def _get_color(self, level_name):
         """根据日志级别返回相应的颜色"""
         colors = {
-            'DEBUG': Fore.CYAN,
-            'INFO': Fore.GREEN,
-            'WARNING': Fore.YELLOW,
-            'ERROR': Fore.RED,
-            'CRITICAL': Fore.RED + Style.BRIGHT
+            "DEBUG": Fore.CYAN,
+            "INFO": Fore.GREEN,
+            "WARNING": Fore.YELLOW,
+            "ERROR": Fore.RED,
+            "CRITICAL": Fore.RED + Style.BRIGHT,
         }
         return colors.get(level_name, Fore.WHITE)
 
 
 class LOG:
-    def __init__(self, log_file_prefix=ROOT / "logs"):
+    def __init__(self, log_file_prefix=Path(__file__).resolve().parent.parent / "logs"):
+        Config = CFG()
+        init(autoreset=True)
+
+        console_log_level = Config.get("console_log_level")
+        file_log_level = Config.get("file_log_level")
+
+        log_level_map = {
+            "DEBUG": DEBUG,
+            "INFO": INFO,
+            "WARNING": WARNING,
+            "ERROR": ERROR,
+            "CRITICAL": CRITICAL,
+        }
+
+        console_log_level_int = log_level_map.get(console_log_level.upper(), DEBUG)
+        self.file_log_level_int = log_level_map.get(file_log_level.upper(), INFO)
         os.makedirs(log_file_prefix, exist_ok=True)
         self.log_file_prefix = log_file_prefix
         self.logger = logging.getLogger("Custom Logger")
@@ -55,10 +54,10 @@ class LOG:
         console_handler.setLevel(console_log_level_int)
 
         colored_formatter = CustomFormatter(
-            f'{Fore.BLUE}{Style.BRIGHT}%(asctime)s{Style.RESET_ALL} '
-            f'%(color)s[%(levelname)s]{Style.RESET_ALL} '
-            f'{Fore.WHITE}%(message)s{Style.RESET_ALL}',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            f"{Fore.BLUE}{Style.BRIGHT}%(asctime)s{Style.RESET_ALL} "
+            f"%(color)s[%(levelname)s]{Style.RESET_ALL} "
+            f"{Fore.WHITE}%(message)s{Style.RESET_ALL}",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
         console_handler.setFormatter(colored_formatter)
         self.logger.addHandler(console_handler)
@@ -79,13 +78,15 @@ class LOG:
                     self.file_handler.close()
 
                 self.current_log_date = today
-                self.log_file = os.path.join(
-                    self.log_file_prefix, f"{today}.log")
-                self.file_handler = logging.FileHandler(
-                    self.log_file, encoding='utf-8')
-                self.file_handler.setLevel(file_log_level_int)
-                self.file_handler.setFormatter(logging.Formatter(
-                    '%(asctime)s [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+                self.log_file = os.path.join(self.log_file_prefix, f"{today}.log")
+                self.file_handler = logging.FileHandler(self.log_file, encoding="utf-8")
+                self.file_handler.setLevel(self.file_log_level_int)
+                self.file_handler.setFormatter(
+                    logging.Formatter(
+                        "%(asctime)s [%(levelname)s] %(message)s",
+                        datefmt="%Y-%m-%d %H:%M:%S",
+                    )
+                )
                 self.logger.addHandler(self.file_handler)
 
     def debug(self, message: str) -> None:
@@ -123,5 +124,3 @@ class LOG:
                 yield log_content
             else:
                 yield ""
-
-Logger = LOG()

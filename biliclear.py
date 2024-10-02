@@ -9,9 +9,9 @@ from requests.packages import urllib3  # type: ignore
 from utils import checker
 from compatible_getpass import getpass
 from os import environ
-from utils.config import Config
-from utils.database import db
-from utils.logger import Logger
+from utils.config import CFG
+from utils.database import SQlite
+from utils.logger import LOG
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -327,6 +327,25 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="处理模式参数")
     parser.add_argument("--mode", type=int, default=1, help="指定模式，默认为 1，例如 --mode 1")
     parser.add_argument("--extra", type=int, default=None, help="附加数据")
+    
+    db = SQlite()
+    db.create_table_if_not_exists(
+        'report',
+        {
+            'id': 'INTEGER PRIMARY KEY',
+            'rpid': 'TEXT',
+            'oid': 'TEXT',
+            'mid': 'TEXT',
+            'content': 'TEXT NOT NULL',
+            'rule': 'TEXT',
+            'is_reported': 'INTEGER DEFAULT 0',
+            'need_report': 'INTEGER DEFAULT 0',
+            'report_time': 'TIMESTAMP',
+            'time': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+        }
+    )
+    Config = CFG()
+    Logger = LOG()
 
     Logger.info("BiliClearX - github.com/molanp/BiliClearX")
 

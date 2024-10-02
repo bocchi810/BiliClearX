@@ -2,4 +2,4 @@ ujson
 requests
 Levenshtein
 colorama
-urwid
+customtkinter
