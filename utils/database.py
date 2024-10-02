@@ -77,9 +77,13 @@ db.create_table_if_not_exists(
     'report',
     {
         'id': 'INTEGER PRIMARY KEY',
-        'data': 'TEXT NOT NULL',
+        'rpid': 'TEXT',
+        'oid': 'TEXT',
+        'mid': 'TEXT',
+        'content': 'TEXT NOT NULL',
         'rule': 'TEXT',
-        'status': 'INTEGER',
+        'is_reported': 'INTEGER DEFAULT 0',
+        'need_report': 'INTEGER DEFAULT 0',
         'report_time': 'TIMESTAMP',
         'time': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
     }
