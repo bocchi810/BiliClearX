@@ -7,8 +7,8 @@
 
 
 # TODO
-- [x]  ~~`BiliClearX` 的 WebUI 重构 [#71](https://github.com/qaqFei/BiliClear/issues/71)~~ 太麻烦了，砍了
-- [ ] `BiliClearX` 的审核系统实现(此项会同时解决误判问题) [#62](https://github.com/qaqFei/BiliClear/issues/62) [#50](https://github.com/qaqFei/BiliClear/issues/50) [#66](https://github.com/qaqFei/BiliClear/issues/66) [#64](https://github.com/qaqFei/BiliClear/issues/64)
+- [ ]  ~~`BiliClearX` 的 WebUI 重构 [#71](https://github.com/qaqFei/BiliClear/issues/71)~~ 太麻烦了，砍了
+- [x] `BiliClearX` 的审核系统实现(此项会同时解决误判问题) [#62](https://github.com/qaqFei/BiliClear/issues/62) [#50](https://github.com/qaqFei/BiliClear/issues/50) [#66](https://github.com/qaqFei/BiliClear/issues/66) [#64](https://github.com/qaqFei/BiliClear/issues/64)
 - [x] `BiliClearX` 指定举报人实现 [#38](https://github.com/qaqFei/BiliClear/issues/38)
 - [x] `BiliClearX` 举报策略调整 [#??](#)
 - [x] 支持较低版本的 Python ![Python Version](https://img.shields.io/badge/Python%20Version-%3E%3D3.10-blue)
@@ -22,20 +22,33 @@
 - `BiliClearX`需使用 **Python 3.10 及以上版本**
 
 ## 使用方法
-### 直接运行代码
-- `BiliClearX` 使用 `Python` 开发，使用 `pip` 安装依赖
-```shell
-pip install -r requirements.txt
-```
+### 使用EXE文件
 - 开始检查评论(此脚本可以一直挂到后台)
-    - `python biliclear.py`
+    - 双击运行`biliclearX.exe`(如果可以，请使用管理员权限)
     - 可以使用`--mode`参数指定模式
     - `--mode 1`: 检查全部视频
     - `--mode 2`: 检查指定视频
         - `--extra bivd`: 视频 bvid，不传入则需要手动输入
     - `--mode 3`: 检查指定用户
         - `--extra uid`: 用户 uid，不传入则需要手动输入
-- 人工审查评论(此脚本只有运行过`biliclear.py`且成功登录过才可以用)
+    - eg. `biliClearX.exe --mode 2 --extra bv1h44y1e7j7` 检查`bv1h44y1e7j7`下的评论
+- 审查疑似违规评论
+    - 双击运行`Review.exe`
+### 直接运行代码
+- `BiliClearX` 使用 `Python` 开发，使用 `pip` 安装依赖
+```shell
+pip install -r requirements.txt
+```
+- 开始检查评论(此脚本可以一直挂到后台)
+    - `python biliclearX.py`
+    - 可以使用`--mode`参数指定模式
+    - `--mode 1`: 检查全部视频
+    - `--mode 2`: 检查指定视频
+        - `--extra bivd`: 视频 bvid，不传入则需要手动输入
+    - `--mode 3`: 检查指定用户
+        - `--extra uid`: 用户 uid，不传入则需要手动输入
+    - eg. `python biliclearX.py --mode 2 --extra bv1h44y1e7j7` 检查`bv1h44y1e7j7`下的评论
+- 审查疑似违规评论
     - `python Review.py`
 
 ## 鸣谢

@@ -124,3 +124,5 @@ class LOG:
                 yield log_content
             else:
                 yield ""
+
+Logger = LOG()

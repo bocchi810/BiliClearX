@@ -47,3 +47,5 @@ class CFG:
     def save(self) -> None:
         with open(self.ROOT / "configs" / "main.json", "w", encoding="utf-8") as f:
             f.write(json.dumps(self.content, ensure_ascii=False, indent=4))
+
+Config = CFG()

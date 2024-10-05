@@ -9,6 +9,7 @@ from urllib.parse import quote_plus
 from PIL import Image, ImageTk
 from utils.logger import Logger
 
+
 _qrcode_image = None
 
 

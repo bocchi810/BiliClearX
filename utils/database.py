@@ -11,11 +11,36 @@ class SQlite:
     ):
         self.db_name = db_name
         self.connection = None
+        self.create_table_if_not_exists(
+        'report',
+        {
+            'id': 'INTEGER PRIMARY KEY',
+            'rpid': 'TEXT',
+            'oid': 'TEXT',
+            'mid': 'TEXT',
+            'content': 'TEXT NOT NULL',
+            'rule': 'TEXT',
+            'is_reported': 'INTEGER DEFAULT 0',
+            'need_report': 'INTEGER DEFAULT 0',
+            'report_time': 'TIMESTAMP',
+            'time': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+        }
+    )
 
     def _get_connection(self):
         if self.connection is None:
             self.connection = sqlite3.connect(self.db_name)
         return self.connection
+    
+    def _get_columns(self, table):
+        """
+        获取表的所有列名。
+        :param table: 表名
+        :return: 列名列表
+        """
+        cursor = self.execute(f"PRAGMA table_info({table})")
+        columns = [row[1] for row in cursor.fetchall()]
+        return columns
 
     def execute(self, sql, params=None):
         conn = self._get_connection()
@@ -30,8 +55,6 @@ class SQlite:
         except Exception as e:
             conn.rollback()
             raise e
-        finally:
-            cursor.close()
 
     def create_table_if_not_exists(self, table_name: str, fields: dict):
         """
@@ -57,14 +80,18 @@ class SQlite:
         self.execute(sql)
 
     def select_all(self, table):
+        columns = self._get_columns(table)
         sql = f"SELECT * FROM {table}"
         cursor = self.execute(sql)
-        return cursor.fetchall()
+        results = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in results]
 
     def select_where(self, table, condition):
+        columns = self._get_columns(table)
         sql = f"SELECT * FROM {table} WHERE {condition}"
         cursor = self.execute(sql)
-        return cursor.fetchall()
+        results = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in results]
 
     def update(self, table, data, condition):
         set_clause = ", ".join([f"{k} = ?" for k in data.keys()])
@@ -74,3 +101,5 @@ class SQlite:
     def close(self):
         if self.connection:
             self.connection.close()
+
+Database = SQlite()
