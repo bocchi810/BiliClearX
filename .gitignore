@@ -3,3 +3,6 @@ __pycache__
 configs
 models
 logs
+dist
+build
+*.spec

@@ -24,14 +24,14 @@
 ## 使用方法
 ### 使用EXE文件
 - 开始检查评论(此脚本可以一直挂到后台)
-    - 双击运行`biliclearX.exe`(如果可以，请使用管理员权限)
+    - 双击运行`biliClearX.exe`(如果可以，请使用管理员权限)
     - 可以使用`--mode`参数指定模式
     - `--mode 1`: 检查全部视频
     - `--mode 2`: 检查指定视频
         - `--extra bivd`: 视频 bvid，不传入则需要手动输入
     - `--mode 3`: 检查指定用户
         - `--extra uid`: 用户 uid，不传入则需要手动输入
-    - eg. `biliClearX.exe --mode 2 --extra bv1h44y1e7j7` 检查`bv1h44y1e7j7`下的评论
+    - eg. `biliClearX.exe --mode 2 --extra bv1h44y1e7j7`(建议使用终端) 检查`bv1h44y1e7j7`下的评论
 - 审查疑似违规评论
     - 双击运行`Review.exe`
 ### 直接运行代码
@@ -40,14 +40,14 @@
 pip install -r requirements.txt
 ```
 - 开始检查评论(此脚本可以一直挂到后台)
-    - `python biliclearX.py`
+    - `python biliClearX.py`
     - 可以使用`--mode`参数指定模式
     - `--mode 1`: 检查全部视频
     - `--mode 2`: 检查指定视频
         - `--extra bivd`: 视频 bvid，不传入则需要手动输入
     - `--mode 3`: 检查指定用户
         - `--extra uid`: 用户 uid，不传入则需要手动输入
-    - eg. `python biliclearX.py --mode 2 --extra bv1h44y1e7j7` 检查`bv1h44y1e7j7`下的评论
+    - eg. `python biliClearX.py --mode 2 --extra bv1h44y1e7j7` 检查`bv1h44y1e7j7`下的评论
 - 审查疑似违规评论
     - `python Review.py`
 
