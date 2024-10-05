@@ -2,21 +2,24 @@ import re
 import yaml
 import unicodedata
 
+from utils.logger import Logger
+from utils.config import Root
 from Levenshtein import ratio
-from pathlib import Path
 
 
 class Checker:
     def __init__(self) -> None:
         try:
             with open(
-                Path(__file__).resolve().parent.parent / "res" / "rules.yaml",
+                Root
+                / "res"
+                / "rules.yaml",
                 "r",
                 encoding="utf-8",
             ) as f:
                 config = yaml.safe_load(f)
         except Exception as e:
-            print("警告: 无法加载规则文件,", e)
+            Logger.warning("无法加载规则文件,{}".format(e))
             config = {}
 
         self.rules_exact: list[str | list[str]] = config.get("rules_exact", [])

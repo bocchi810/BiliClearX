@@ -5,4 +5,3 @@ models
 logs
 dist
 build
-*.spec

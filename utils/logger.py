@@ -4,8 +4,7 @@ import threading
 import datetime
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from io import StringIO
-from utils.config import CFG
-from pathlib import Path
+from utils.config import Config, Root
 from colorama import init, Fore, Style
 
 
@@ -28,8 +27,11 @@ class CustomFormatter(logging.Formatter):
 
 
 class LOG:
-    def __init__(self, log_file_prefix=Path(__file__).resolve().parent.parent / "logs"):
-        Config = CFG()
+    def __init__(
+        self,
+        log_file_prefix=Root
+        / "logs",
+    ):
         init(autoreset=True)
 
         console_log_level = Config.get("console_log_level")
@@ -124,5 +126,6 @@ class LOG:
                 yield log_content
             else:
                 yield ""
+
 
 Logger = LOG()

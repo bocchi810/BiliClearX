@@ -1,37 +1,37 @@
 import sqlite3
-from pathlib import Path
+from utils.config import Root
 
 
 class SQlite:
     def __init__(
         self,
         db_name: str = str(
-            Path(__file__).resolve().parent.parent / "configs" / "biliclear.db"
+            Root / "configs" / "biliclear.db"
         ),
     ):
         self.db_name = db_name
         self.connection = None
         self.create_table_if_not_exists(
-        'report',
-        {
-            'id': 'INTEGER PRIMARY KEY',
-            'rpid': 'TEXT',
-            'oid': 'TEXT',
-            'mid': 'TEXT',
-            'content': 'TEXT NOT NULL',
-            'rule': 'TEXT',
-            'is_reported': 'INTEGER DEFAULT 0',
-            'need_report': 'INTEGER DEFAULT 0',
-            'report_time': 'TIMESTAMP',
-            'time': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
-        }
-    )
+            "report",
+            {
+                "id": "INTEGER PRIMARY KEY",
+                "rpid": "TEXT",
+                "oid": "TEXT",
+                "mid": "TEXT",
+                "content": "TEXT NOT NULL",
+                "rule": "TEXT",
+                "is_reported": "INTEGER DEFAULT 0",
+                "need_report": "INTEGER DEFAULT 0",
+                "report_time": "TIMESTAMP",
+                "time": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            },
+        )
 
     def _get_connection(self):
         if self.connection is None:
             self.connection = sqlite3.connect(self.db_name)
         return self.connection
-    
+
     def _get_columns(self, table):
         """
         获取表的所有列名。
@@ -101,5 +101,6 @@ class SQlite:
     def close(self):
         if self.connection:
             self.connection.close()
+
 
 Database = SQlite()

@@ -2,13 +2,15 @@ from pathlib import Path
 from typing import Any
 import ujson as json
 import os
+import sys
+
+Root = Path(os.path.realpath(sys.argv[0])).parent
+
 
 
 class CFG:
     def __init__(self):
-        self.ROOT = Path(__file__).resolve().parent.parent
-
-        os.makedirs(self.ROOT / "configs", exist_ok=True)
+        os.makedirs(Root / "configs", exist_ok=True)
         self.default = {
             "console_log_level": "debug",
             "file_log_level": "info",
@@ -23,7 +25,7 @@ class CFG:
 
     def read(self) -> dict:
         try:
-            with open(self.ROOT / "configs" / "main.json", "r", encoding="utf-8") as f:
+            with open(Root / "configs" / "main.json", "r", encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
             return self.default
@@ -45,7 +47,8 @@ class CFG:
         self.save()
 
     def save(self) -> None:
-        with open(self.ROOT / "configs" / "main.json", "w", encoding="utf-8") as f:
+        with open(Root / "configs" / "main.json", "w", encoding="utf-8") as f:
             f.write(json.dumps(self.content, ensure_ascii=False, indent=4))
+
 
 Config = CFG()

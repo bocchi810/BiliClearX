@@ -1,7 +1,9 @@
 import tkinter
 import requests
 import time
+import _ssl
 import re
+import sys
 import asyncio
 from utils.config import Config
 from utils.database import Database
@@ -198,7 +200,7 @@ if __name__ == "__main__":
     all_report = len(data)
     if all_report == 0:
         tkinter.messagebox.showinfo("提示", "暂无违规评论")
-        exit()
+        sys.exit(0)
     try:
         Csrf = getCsrf(Config.get("cookie"))
     except ValueError as e:
