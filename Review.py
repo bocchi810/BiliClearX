@@ -3,8 +3,8 @@ import requests
 import time
 import re
 import asyncio
-from utils.database import Database
 from utils.config import Config
+from utils.database import Database
 from utils.logger import Logger
 import customtkinter as ctk
 import tkinter.messagebox
