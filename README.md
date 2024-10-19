@@ -12,6 +12,7 @@
 - [x] `BiliClearX` 指定举报人实现 [#38](https://github.com/qaqFei/BiliClear/issues/38)
 - [x] `BiliClearX` 举报策略调整 [#??](#)
 - [x] 支持较低版本的 Python ![Python Version](https://img.shields.io/badge/Python%20Version-%3E%3D3.10-blue)
+- [ ] `BiliClearX` 接入AI全自动审核(不需要用户配置) [#??](#)
 
 
 ![BiliClearX](https://socialify.git.ci/molanp/BiliClearX/image?description=1&descriptionEditable=Report%20violating%20Bilibili%20users%20in%20batches.&font=Jost&forks=1&issues=1&language=1&name=1&owner=1&pattern=Charlie%20Brown&pulls=1&stargazers=1&theme=Auto)
