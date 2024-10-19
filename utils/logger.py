@@ -29,8 +29,7 @@ class CustomFormatter(logging.Formatter):
 class LOG:
     def __init__(
         self,
-        log_file_prefix=Root
-        / "logs",
+        log_file_prefix=Root / "logs",
     ):
         init(autoreset=True)
 
@@ -91,30 +90,33 @@ class LOG:
                 )
                 self.logger.addHandler(self.file_handler)
 
-    def debug(self, message: str) -> None:
-        self._ensure_log_file_created()
-        with self.lock:
-            self.logger.debug(message)
+    def _format_message(self, *args):
+        return " ".join(str(arg) for arg in args)
 
-    def info(self, message: str) -> None:
+    def debug(self, *args) -> None:
         self._ensure_log_file_created()
         with self.lock:
-            self.logger.info(message)
+            self.logger.debug(self._format_message(*args))
 
-    def warning(self, message: str) -> None:
+    def info(self, *args) -> None:
         self._ensure_log_file_created()
         with self.lock:
-            self.logger.warning(message)
+            self.logger.info(self._format_message(*args))
 
-    def error(self, message: str) -> None:
+    def warning(self, *args) -> None:
         self._ensure_log_file_created()
         with self.lock:
-            self.logger.error(message)
+            self.logger.warning(self._format_message(*args))
 
-    def critical(self, message: str) -> None:
+    def error(self, *args) -> None:
         self._ensure_log_file_created()
         with self.lock:
-            self.logger.critical(message)
+            self.logger.error(self._format_message(*args))
+
+    def critical(self, *args) -> None:
+        self._ensure_log_file_created()
+        with self.lock:
+            self.logger.critical(self._format_message(*args))
 
     def _generate_log_output(self):
         """生成器函数，用于生成日志输出。"""
