@@ -121,8 +121,7 @@ class LOG:
     def _generate_log_output(self):
         """生成器函数，用于生成日志输出。"""
         while True:
-            log_content = self.log_stream.getvalue()
-            if log_content:
+            if log_content := self.log_stream.getvalue():
                 self.log_stream.seek(0)
                 self.log_stream.truncate(0)  # 清空日志缓冲区
                 yield log_content
