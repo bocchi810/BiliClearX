@@ -3,3 +3,5 @@ requests
 Levenshtein
 colorama
 customtkinter
+pillow
+pyyaml
